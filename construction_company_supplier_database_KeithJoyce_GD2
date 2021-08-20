@@ -1,0 +1,275 @@
+CREATE TABLE employee (
+  employee_id INT PRIMARY KEY,
+  job_title VARCHAR(40),
+  first_name VARCHAR(30),
+  last_name VARCHAR(30),
+  date_of_birth DATE,
+  salary INT,
+  store_id INT,
+  supervisor_id INT
+);
+
+CREATE TABLE store (
+  store_id INT PRIMARY KEY,
+  store_name VARCHAR(40),
+  store_location VARCHAR(40),
+  manager_id INT,
+  manager_start_date DATE,
+  FOREIGN KEY(manager_id) REFERENCES employee(employee_id) ON DELETE SET NULL
+);
+
+ALTER TABLE employee
+ADD FOREIGN KEY(store_id)
+REFERENCES store(store_id)
+ON DELETE SET NULL;
+
+ALTER TABLE employee
+ADD FOREIGN KEY(supervisor_id)
+REFERENCES employee(employee_id)
+ON DELETE SET NULL;
+
+CREATE TABLE client (
+  client_id INT PRIMARY KEY,
+  client_name VARCHAR(40),
+  store_id INT,
+  FOREIGN KEY(store_id) REFERENCES store(store_id) ON DELETE SET NULL
+);
+
+CREATE TABLE client_employee_relations (
+  employee_id INT,
+  client_id INT,
+  sales INT,
+  PRIMARY KEY(employee_id, client_id),
+  FOREIGN KEY(employee_id) REFERENCES employee(employee_id) ON DELETE CASCADE,
+  FOREIGN KEY(client_id) REFERENCES client(client_id) ON DELETE CASCADE
+);
+
+CREATE TABLE store_supplier (
+  store_id INT,
+  supplier_name VARCHAR(40),
+  material_type VARCHAR(30),
+  PRIMARY KEY(store_id, supplier_name),
+  FOREIGN KEY(store_id) REFERENCES store(store_id) ON DELETE CASCADE
+);
+
+INSERT INTO employee VALUES(100, 'CEO', 'John', 'Gregory', '1958-10-11', 155000, NULL, NULL);
+
+INSERT INTO store VALUES(1, 'Head Office','Dublin', 100, '1999-03-03');
+
+UPDATE employee
+SET store_id = 1
+WHERE employee_id = 100;
+
+INSERT INTO employee VALUES(101, 'District Manager', 'Ernie', 'Donnelly', '1974-03-22', 75000, 1, 100);
+
+INSERT INTO employee VALUES(102, 'Store Manager', 'Jenny', 'Smtyh', '1988-12-02', 55000, NULL, 101);
+
+INSERT INTO store VALUES(2, 'Ye Olde Wooden Times','Dublin', 102, '1995-07-15');
+
+UPDATE employee
+SET store_id = 2
+WHERE employee_id = 102;
+
+INSERT INTO employee VALUES(105, 'Sales', 'Amanda', 'Drill', '1982-11-22', 39000, 2, 102);
+INSERT INTO employee VALUES(106, 'Sales', 'Thomas', 'Daily', '1997-07-07', 39000, 2, 102);
+
+INSERT INTO employee VALUES(103, 'Store Manager', 'Bill', 'Bob', '1979-07-12', 55000, NULL, 101);
+
+INSERT INTO store VALUES(3, 'The Iron Rod','Wexford', 103, '2001-04-12');
+
+UPDATE employee
+SET store_id = 3
+WHERE employee_id = 103;
+
+INSERT INTO employee VALUES(107, 'Sales', 'Jacob', 'Blu', '1991-01-12', 39000, 3, 103);
+INSERT INTO employee VALUES(108, 'Sales', 'Adam', 'Simms', '1984-06-02', 39000, 3, 103);
+
+INSERT INTO employee VALUES(104, 'Store Manager', 'Sean', 'Gregory', '1992-11-12', 55000, NULL, 101);
+
+INSERT INTO store VALUES(4, 'Amber Logs Hardware','Drogheda', 104, '2007-11-12');
+
+UPDATE employee
+SET store_id = 4
+WHERE employee_id = 104;
+
+INSERT INTO employee VALUES(109, 'Sales', 'Marie', 'Johnson', '1973-02-15', 39000, 4, 104);
+INSERT INTO employee VALUES(110, 'Sales', 'Tony', 'Brittle', '1969-08-23', 39000, 4, 104);
+
+INSERT INTO store_supplier VALUES(2, 'Millin Logs', 'Lumber');
+INSERT INTO store_supplier VALUES(2, 'Hammer Mill', 'Lumber');
+INSERT INTO store_supplier VALUES(3, 'DP Fabricators', 'Steel');
+INSERT INTO store_supplier VALUES(3, 'Rock N Metal', 'Steel');
+INSERT INTO store_supplier VALUES(4, 'Nail and Co', 'Nails');
+INSERT INTO store_supplier VALUES(4, 'Stratom Wood', 'Plywood');
+
+INSERT INTO client VALUES(600, 'Wellness Home Builders', 2);
+INSERT INTO client VALUES(601, 'Base Mountain Construction', 2);
+INSERT INTO client VALUES(602, 'Blue Ladder Construction', 2);
+INSERT INTO client VALUES(603, 'Build It Brothers', 3);
+INSERT INTO client VALUES(604, 'Looking Glass Homes', 3);
+INSERT INTO client VALUES(605, 'The Trusty Wrench', 4);
+INSERT INTO client VALUES(606, 'Carl’s Pane in the Glass', 4);
+INSERT INTO client VALUES(607, 'PCL Construction', 4);
+
+INSERT INTO client_employee_relations VALUES(105, 600, 85000);
+INSERT INTO client_employee_relations VALUES(106, 601, 57400);
+INSERT INTO client_employee_relations VALUES(106, 602, 131275);
+INSERT INTO client_employee_relations VALUES(107, 603, 55750);
+INSERT INTO client_employee_relations VALUES(108, 604, 98000);
+INSERT INTO client_employee_relations VALUES(109, 605, 27650);
+INSERT INTO client_employee_relations VALUES(109, 607, 12000);
+
+CREATE INDEX employee_index on employee(job_title, employee_id);
+CREATE INDEX store_index on store(store_id);
+CREATE INDEX client_index on client(client_name);
+CREATE INDEX supplier_index on store_supplier(supplier_name);
+
+SELECT SUM(sales), client_id
+FROM client_employee_relations
+GROUP BY client_id
+
+SELECT COUNT(employee_id)
+FROM employee;
+
+CREATE VIEW employee_view_basic_info AS 
+	SELECT 
+		employee_id, 
+		job_title, 
+		store_id 
+	FROM 
+		employee;
+
+SELECT * FROM employee_view_basic_info;
+
+CREATE VIEW supplier_lumber AS
+  SELECT 
+	store_id_id, supplier_name
+  FROM 
+	store_supplier
+  WHERE 
+	material_type = 'Lumber';
+	
+CREATE VIEW supplier_steel AS
+  SELECT 
+	store_id_id, supplier_name
+  FROM 
+	store_supplier
+  WHERE 
+	material_type = 'Steel';
+
+SELECT * FROM supplier_steel;
+
+CREATE VIEW large_sales AS
+	SELECT
+		client_id,
+		sales
+	FROM
+		client_employee_relations
+	WHERE
+		sales > 65000;
+
+SELECT client_id, sales FROM large_sales;
+
+DELIMITER $$
+CREATE PROCEDURE sp_get_employees()
+BEGIN
+	SELECT employee_id , job_title, first_name, last_name, date_of_birth, salary,store_id, supervisor_id 
+	FROM employee;
+END$$
+
+DELIMITER ;
+
+CALL sp_get_employees
+
+DELIMITER $$
+CREATE PROCEDURE sp_get_specfic_employee(IN employee varchar(30))
+BEGIN
+	SELECT employee_id , job_title, first_name, last_name, date_of_birth, salary,store_id, supervisor_id 
+	FROM employee WHERE employee = employee;
+END$$
+
+DELIMITER ;
+
+CALL sp_get_specfic_employee('John');
+
+SAVEPOINT savepoint_database_1;
+
+DELETE FROM client WHERE client_name = 'Build It Brothers';
+DELETE FROM employee WHERE employee_id = 107;
+DELETE FROM employee WHERE job_title = 'Store Manager';
+DELETE FROM store_supplier WHERE supplier_name = 'Millin Logs';
+DELETE FROM store WHERE store_id = 1;
+
+ROLLBACK TO savepoint_database_1;
+
+BEGIN TRAN
+INSERT INTO employee VALUES(111, 'Sales', 'Joe', 'Ronson', '1983-12-23', 39000, 3, 103);
+
+UPDATE employee SET salary = 45675 WHERE employee_id = 111;
+SELECT first_name, last_name, job_title, salary, date_of_birth, store_id, supervisor_id FROM employee WHERE employee_id = 111;
+
+COMMIT TRAN
+
+CREATE TABLE trigger_message(
+	message VARCHAR(100)
+);
+
+DELIMITER $$
+
+CREATE
+	Trigger new_employee_trigger 
+	BEFORE INSERT ON employee
+	FOR EACH ROW BEGIN
+		INSERT INTO trigger_message VALUES('New employee has been added to the company database')
+	END $$
+	
+DELIMITER ;
+
+INSERT INTO employee VALUES(109, 'Sales', 'Kian', 'Broski', '2000-03-13', 39000, 2, 102);
+
+DELIMITER $$
+
+CREATE
+	Trigger new_employee_role_trigger
+	BEFORE INSERT ON employee 
+	FOR EACH ROW BEGIN
+		IF NEW.job_title = 'Sales' THEN 
+			INSERT INTO trigger_message VALUES('New sales associate has been added to the company database');
+		ELSIF NEW.job_title = 'Store Manager' THEN 
+			INSERT INTO trigger_message VALUES('New Store Manager has been added to the company database');
+		ELSE NEW.job_title = 'District Manager' THEN 
+			INSERT INTO trigger_message VALUES('New District Manager has been added to the company database');
+		END IF;
+	END$$
+	
+DELIMITER ;
+	
+INSERT INTO employee VALUES(110, 'Sales', 'Kenny', 'Milhouse', '2001-12-11', 39000, 3, 102);
+	
+DELIMITER $$
+
+CREATE
+	Trigger new_client_trigger 
+	BEFORE INSERT ON client
+	FOR EACH ROW BEGIN
+		INSERT INTO trigger_message VALUES('New client has been added to the company database')
+	END $$
+	
+DELIMITER ;
+
+INSERT INTO client VALUES(608, 'Construction Bros', 3);
+
+DELIMITER $$
+
+CREATE
+	Trigger new_supplier_trigger 
+	BEFORE INSERT ON store_supplier
+	FOR EACH ROW BEGIN
+		INSERT INTO trigger_message VALUES('New store supplier has been added to the company database')
+	END $$
+	
+DELIMITER ;
+
+INSERT INTO store_supplier VALUES(4, 'Hammers and such', 'Hammers');
+
+
